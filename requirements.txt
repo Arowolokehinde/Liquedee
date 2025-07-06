@@ -28,7 +28,6 @@ pyarrow
 # Machine Learning
 scikit-learn
 xgboost
-tensorflow
 mlflow
 
 # Monitoring & Logging

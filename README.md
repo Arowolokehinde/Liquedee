@@ -1,6 +1,6 @@
 # Liquedee - Cryptocurrency Liquidity Analysis Platform
 
-A comprehensive cryptocurrency liquidity analysis and token discovery platform built for Solana and multi-chain environments. Features real-time monitoring, ML-powered scoring, and automated Telegram alerts for emerging opportunities.
+A comprehensive cryptocurrency liquidity analysis  and token discovery ** Telegram Ai bot ** built for Solana and multi-chain environments. Features real-time monitoring, ML-powered scoring, and automated Telegram alerts for emerging opportunities.
 
 ## 🚀 Features
 
@@ -326,20 +326,3 @@ flake8 src/
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## ⚠️ Disclaimer
-
-This software is for educational and research purposes only. Cryptocurrency trading involves significant risk, and you should never invest more than you can afford to lose. The authors are not responsible for any financial losses incurred through the use of this software.
-
-## 🔗 Links
-
-- [Documentation](https://docs.liquedee.com)
-- [API Reference](https://api.liquedee.com/docs)
-- [Discord Community](https://discord.gg/liquedee)
-- [Twitter](https://twitter.com/liquedee)
-
-## 🙏 Acknowledgments
-
-- [DexScreener](https://dexscreener.com) for DEX data
-- [Jupiter](https://jup.ag) for Solana price feeds
-- [Solana Labs](https://solana.com) for blockchain infrastructure
-- [FastAPI](https://fastapi.tiangolo.com) for the web framework

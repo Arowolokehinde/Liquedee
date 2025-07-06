@@ -1290,9 +1290,6 @@ class RealtimeSnifferBot:
         self.application.run_polling(
             allowed_updates=Update.ALL_TYPES,
             timeout=20,
-            write_timeout=25,
-            connect_timeout=10,
-            pool_timeout=5,
         )
 
 

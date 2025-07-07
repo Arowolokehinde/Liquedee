@@ -28,7 +28,13 @@ async def api_status():
 
 def run_telegram_bot():
     """Run the Telegram bot in a separate thread"""
+    import asyncio
+    
     try:
+        # Create new event loop for this thread
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        
         from src.telegram_bot.bot_realtime import RealtimeSnifferBot
 
         BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
@@ -42,6 +48,12 @@ def run_telegram_bot():
         print(f"❌ Telegram bot error: {e}")
         import traceback
         traceback.print_exc()
+    finally:
+        # Clean up the event loop
+        try:
+            loop.close()
+        except:
+            pass
 
 
 # Start bot when module is imported (not just when run as main)

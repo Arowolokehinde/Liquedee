@@ -176,11 +176,20 @@ class RealtimeSnifferBot:
             name='Daily Alpha Scan'
         )
         
+        # Keep-alive ping every 10 minutes (prevents Render shutdown)
+        self.scheduler.add_job(
+            self.scheduled_keep_alive,
+            IntervalTrigger(minutes=10),
+            id='keep_alive_ping',
+            name='Keep Alive Ping'
+        )
+        
         logger.info("📅 Scheduled tasks configured:")
         logger.info("  • Gem scan: Every 30 minutes")
         logger.info("  • Discovery scan: Every 15 minutes") 
         logger.info("  • Health check: Every hour")
         logger.info("  • Alpha scan: Daily at 9 AM UTC")
+        logger.info("  • Keep-alive ping: Every 10 minutes")
 
     async def safe_send_message(
         self, update: Update, text: str, reply_markup=None, max_retries: int = 3
@@ -1404,6 +1413,28 @@ class RealtimeSnifferBot:
                 
         except Exception as e:
             logger.error(f"Health check error: {e}")
+
+    async def scheduled_keep_alive(self):
+        """Keep-alive ping to prevent Render shutdown"""
+        try:
+            import httpx
+            import os
+            
+            # Get the service URL from environment or use default
+            service_url = os.getenv("RENDER_EXTERNAL_URL", "https://liquedee.onrender.com")
+            
+            # Make a simple GET request to keep the service alive
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                response = await client.get(f"{service_url}/health")
+                
+                if response.status_code == 200:
+                    logger.info(f"🏓 Keep-alive ping successful: {service_url}")
+                else:
+                    logger.warning(f"⚠️ Keep-alive ping returned {response.status_code}")
+                    
+        except Exception as e:
+            logger.error(f"Keep-alive ping failed: {e}")
+            # Don't let keep-alive failures stop the bot
 
     async def cleanup(self):
         """Clean up resources"""

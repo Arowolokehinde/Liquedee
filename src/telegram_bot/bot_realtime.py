@@ -1287,9 +1287,14 @@ class RealtimeSnifferBot:
         logger.info("🔗 Blockchain monitoring capable")
 
         # Start polling with reasonable timeouts
+        # Disable signal handling when not in main thread
+        import threading
+        is_main_thread = threading.current_thread() is threading.main_thread()
+        
         self.application.run_polling(
             allowed_updates=Update.ALL_TYPES,
             timeout=20,
+            stop_signals=[] if not is_main_thread else None,
         )
 
 

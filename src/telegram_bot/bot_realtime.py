@@ -81,6 +81,7 @@ class RealtimeSnifferBot:
         }
 
         self.setup_handlers()
+        self.setup_scheduled_tasks()
         self.application.add_error_handler(self.error_handler)
 
     async def error_handler(
@@ -137,6 +138,49 @@ class RealtimeSnifferBot:
 
         # Callback handlers
         self.application.add_handler(CallbackQueryHandler(self.button_callback))
+
+    def setup_scheduled_tasks(self):
+        """Setup scheduled tasks using APScheduler"""
+        
+        # Auto gem scan every 30 minutes
+        self.scheduler.add_job(
+            self.scheduled_gem_scan,
+            IntervalTrigger(minutes=30),
+            id='auto_gem_scan',
+            name='Auto Gem Scan'
+        )
+        
+        # Auto discovery scan every 15 minutes  
+        self.scheduler.add_job(
+            self.scheduled_discovery_scan,
+            IntervalTrigger(minutes=15),
+            id='auto_discovery_scan',
+            name='Auto Discovery Scan'
+        )
+        
+        # Health check every hour
+        self.scheduler.add_job(
+            self.scheduled_health_check,
+            IntervalTrigger(hours=1),
+            id='health_check',
+            name='System Health Check'
+        )
+        
+        # Daily alpha scan at 9 AM UTC
+        self.scheduler.add_job(
+            self.scheduled_alpha_scan,
+            'cron',
+            hour=9,
+            minute=0,
+            id='daily_alpha_scan',
+            name='Daily Alpha Scan'
+        )
+        
+        logger.info("📅 Scheduled tasks configured:")
+        logger.info("  • Gem scan: Every 30 minutes")
+        logger.info("  • Discovery scan: Every 15 minutes") 
+        logger.info("  • Health check: Every hour")
+        logger.info("  • Alpha scan: Daily at 9 AM UTC")
 
     async def safe_send_message(
         self, update: Update, text: str, reply_markup=None, max_retries: int = 3
@@ -1262,9 +1306,113 @@ class RealtimeSnifferBot:
             "**Time:** ~30 seconds for comprehensive analysis",
         )
 
+    async def scheduled_gem_scan(self):
+        """Scheduled gem scan task"""
+        try:
+            logger.info("🔄 Running scheduled gem scan...")
+            gems = await self.gem_hunter.hunt_gems(max_gems=10)
+            
+            if gems and self.subscribers:
+                message = f"💎 **SCHEDULED GEM ALERT**\n\n"
+                message += self.format_gem_opportunities(gems[:5], "Scheduled")
+                
+                for user_id in list(self.subscribers):
+                    try:
+                        await self.application.bot.send_message(
+                            chat_id=user_id,
+                            text=message,
+                            parse_mode=ParseMode.MARKDOWN
+                        )
+                    except Exception as e:
+                        logger.error(f"Failed to send scheduled gem alert to {user_id}: {e}")
+                        if "blocked" in str(e).lower():
+                            self.subscribers.discard(user_id)
+                            
+            logger.info(f"✅ Scheduled gem scan complete: {len(gems)} gems found")
+        except Exception as e:
+            logger.error(f"Scheduled gem scan error: {e}")
+
+    async def scheduled_discovery_scan(self):
+        """Scheduled discovery scan task"""
+        try:
+            logger.info("🔄 Running scheduled discovery scan...")
+            discoveries = await self.live_discovery.scan_live_discoveries(max_discoveries=10)
+            
+            if discoveries and self.realtime_subscribers:
+                message = f"🚀 **SCHEDULED DISCOVERY ALERT**\n\n"
+                message += self.format_discovery_opportunities(discoveries[:3], "Scheduled")
+                
+                for user_id in list(self.realtime_subscribers):
+                    try:
+                        await self.application.bot.send_message(
+                            chat_id=user_id,
+                            text=message,
+                            parse_mode=ParseMode.MARKDOWN
+                        )
+                    except Exception as e:
+                        logger.error(f"Failed to send scheduled discovery alert to {user_id}: {e}")
+                        if "blocked" in str(e).lower():
+                            self.realtime_subscribers.discard(user_id)
+                            
+            logger.info(f"✅ Scheduled discovery scan complete: {len(discoveries)} discoveries found")
+        except Exception as e:
+            logger.error(f"Scheduled discovery scan error: {e}")
+
+    async def scheduled_alpha_scan(self):
+        """Daily scheduled alpha scan"""
+        try:
+            logger.info("🔄 Running daily alpha scan...")
+            alpha_gems = await self.alpha_scanner.scan_alpha_gems(max_gems=15)
+            
+            if alpha_gems and self.subscribers:
+                message = f"🔥 **DAILY ALPHA REPORT**\n\n"
+                message += self.format_alpha_results(alpha_gems[:10])
+                
+                for user_id in list(self.subscribers):
+                    try:
+                        await self.application.bot.send_message(
+                            chat_id=user_id,
+                            text=message,
+                            parse_mode=ParseMode.MARKDOWN
+                        )
+                    except Exception as e:
+                        logger.error(f"Failed to send daily alpha report to {user_id}: {e}")
+                        if "blocked" in str(e).lower():
+                            self.subscribers.discard(user_id)
+                            
+            logger.info(f"✅ Daily alpha scan complete: {len(alpha_gems)} alpha gems found")
+        except Exception as e:
+            logger.error(f"Daily alpha scan error: {e}")
+
+    async def scheduled_health_check(self):
+        """Scheduled health check"""
+        try:
+            logger.info("🔄 Running scheduled health check...")
+            
+            # Check system health
+            from src.core.health import health_check
+            health_ok = await health_check()
+            
+            # Check subscriber counts
+            total_subscribers = len(self.subscribers) + len(self.realtime_subscribers)
+            
+            # Log health status
+            if health_ok:
+                logger.info(f"✅ Health check passed - {total_subscribers} active subscribers")
+            else:
+                logger.warning(f"⚠️ Health check failed - {total_subscribers} active subscribers")
+                
+        except Exception as e:
+            logger.error(f"Health check error: {e}")
+
     async def cleanup(self):
         """Clean up resources"""
         try:
+            # Stop scheduler
+            if self.scheduler.running:
+                self.scheduler.shutdown()
+                logger.info("📅 Scheduler stopped")
+                
             if self.fast_scanner:
                 await self.fast_scanner.close()
             if self.gem_hunter:
@@ -1285,6 +1433,10 @@ class RealtimeSnifferBot:
         logger.info("🚀 Starting Realtime Token Sniffer Bot...")
         logger.info("⚡ Multiple detection methods available")
         logger.info("🔗 Blockchain monitoring capable")
+
+        # Start the scheduler
+        self.scheduler.start()
+        logger.info("📅 Scheduler started successfully")
 
         # Start polling with reasonable timeouts
         # Disable signal handling when not in main thread

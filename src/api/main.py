@@ -40,13 +40,21 @@ def run_telegram_bot():
             print("⚠️ No TELEGRAM_BOT_TOKEN found, skipping bot startup")
     except Exception as e:
         print(f"❌ Telegram bot error: {e}")
+        import traceback
+        traceback.print_exc()
+
+
+# Start bot when module is imported (not just when run as main)
+BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+if BOT_TOKEN:
+    print("🚀 Starting Telegram bot thread...")
+    bot_thread = Thread(target=run_telegram_bot, daemon=True)
+    bot_thread.start()
+    print("✅ Telegram bot thread started")
+else:
+    print("⚠️ No TELEGRAM_BOT_TOKEN found")
 
 
 if __name__ == "__main__":
-    # Start Telegram bot in background thread
-    if os.getenv("TELEGRAM_BOT_TOKEN"):
-        bot_thread = Thread(target=run_telegram_bot, daemon=True)
-        bot_thread.start()
-
     # Start FastAPI server
     uvicorn.run(app, host="0.0.0.0", port=8000)
